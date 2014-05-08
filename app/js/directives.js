@@ -14,7 +14,7 @@ angular.module('myApp.directives', []).
             scope: {
                 markerData: '=markers',
                 mapType: '@',
-                zoom: '@',
+                zoom: '=',
                 center: '='
             },
             controller: function ($scope) {
@@ -34,6 +34,8 @@ angular.module('myApp.directives', []).
                     angular.forEach($scope._gMarkers, function (m) {
                         m.setMap(null);
                     });
+
+                    $scope._gMarkers = [];
 
                     angular.forEach($scope.markerData, function (item, k) {
 
@@ -58,18 +60,35 @@ angular.module('myApp.directives', []).
                     });
                 };
 
-                $scope.$watch('markerData', function (oldval, newval) {
+                $scope.updateZoom = function () {
+                    $scope.map.setZoom($scope.zoom || 0);
+                };
+
+                $scope.updateCenter = function () {
+                    var center = $scope.center || {lat: 0, lng: 0};
+
+                    $scope.map.setCenter(new google.maps.LatLng(center.lat || 0, center.lng || 0));
+                };
+
+                $scope.$watch('markerData', function () {
                     $scope.updateMarkers();
+                });
+
+                $scope.$watch('zoom', function () {
+                    $scope.updateZoom();
+                });
+
+                $scope.$watch('center', function () {
+                    $scope.updateCenter();
                 });
 
             },
             link: function ($scope, $elm, $attrs) {
 
-                var center = $scope.center || '[0,0]';
-                var evalCenter = eval(center);
+                var center = $scope.center || {lat: 0, lng: 0};
 
                 $scope.map = new google.maps.Map($elm[0], {
-                    center: new google.maps.LatLng(evalCenter[0], evalCenter[1]),
+                    center: new google.maps.LatLng(center.lat, center.lng),
                     zoom: parseInt($scope.zoom) || 0,
                     mapTypeId: $scope.mapType || google.maps.MapTypeId.ROADMAP
                 });

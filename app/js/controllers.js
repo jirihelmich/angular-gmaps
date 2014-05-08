@@ -5,6 +5,9 @@
 angular.module('myApp.controllers', [])
     .controller('MyCtrl1', ['$scope', function ($scope) {
 
+        $scope.zoom = 0;
+        $scope.center = {lat: 49, lng: 15};
+
         $scope.markers = [
             {
                 coordinates: {lat: 50, lng: 14},
@@ -27,7 +30,19 @@ angular.module('myApp.controllers', [])
                     description: "nice one"
                 }
             ];
-        }
+        };
+
+        $scope.changeCenter = function(){
+            $scope.center = {lat: 33, lng: 12};
+        };
+
+        $scope.zoomOut = function(){
+            $scope.zoom = Math.max(0,$scope.zoom-1);
+        };
+
+        $scope.zoomIn = function(){
+            $scope.zoom = Math.min(20,$scope.zoom+1);
+        };
 
     }])
     .controller('MyCtrl2', ['$scope', function ($scope) {
