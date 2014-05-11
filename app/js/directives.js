@@ -15,7 +15,10 @@ angular.module('myApp.directives', []).
                 markerData: '=markers',
                 mapType: '@',
                 zoom: '=',
-                center: '='
+                center: '=',
+                zoomChangedListener: '&zoomChanged',
+                centerChangedListener: '&centerChanged',
+                fitBounds: '='
             },
             controller: function ($scope) {
 
@@ -29,6 +32,16 @@ angular.module('myApp.directives', []).
                     return t;
                 };
 
+                $scope.zoomChanged = function (zoomLevel) {
+                    $scope.zoomChangedListener = $scope.zoomChangedListener || function () {};
+                    $scope.zoomChangedListener({zoom: zoomLevel});
+                };
+
+                $scope.centerChanged = function (center) {
+                    $scope.centerChangedListener = $scope.centerChangedListener || function () {};
+                    $scope.centerChangedListener({center: {lat: center.k, lng: center.A}}); //wtf, google, wtf?!
+                };
+
                 $scope.updateMarkers = function () {
 
                     angular.forEach($scope._gMarkers, function (m) {
@@ -36,6 +49,8 @@ angular.module('myApp.directives', []).
                     });
 
                     $scope._gMarkers = [];
+
+                    var bounds = new google.maps.LatLngBounds();
 
                     angular.forEach($scope.markerData, function (item, k) {
 
@@ -47,8 +62,6 @@ angular.module('myApp.directives', []).
 
                         $scope._gMarkers.push(marker);
 
-                        //$scope.addVisibilityListener(item, marker);
-
                         var contentString = '<p>' + item.description.replace(/\n/g, "<br />") + '</p>';
 
                         google.maps.event.addListener(marker, 'click', function (content) {
@@ -57,7 +70,13 @@ angular.module('myApp.directives', []).
                                 $scope.infowindow.open($scope.map, this);
                             }
                         }(contentString));
+
+                        bounds.extend(marker.position);
                     });
+
+                    if($scope.fitBounds === true){
+                        $scope.map.fitBounds(bounds);
+                    }
                 };
 
                 $scope.updateZoom = function () {
@@ -66,7 +85,6 @@ angular.module('myApp.directives', []).
 
                 $scope.updateCenter = function () {
                     var center = $scope.center || {lat: 0, lng: 0};
-
                     $scope.map.setCenter(new google.maps.LatLng(center.lat || 0, center.lng || 0));
                 };
 
@@ -91,6 +109,14 @@ angular.module('myApp.directives', []).
                     center: new google.maps.LatLng(center.lat, center.lng),
                     zoom: parseInt($scope.zoom) || 0,
                     mapTypeId: $scope.mapType || google.maps.MapTypeId.ROADMAP
+                });
+
+                google.maps.event.addListener($scope.map, 'zoom_changed', function () {
+                    $scope.zoomChanged($scope.map.getZoom());
+                });
+
+                google.maps.event.addListener($scope.map, 'center_changed', function () {
+                    $scope.centerChanged($scope.map.getCenter());
                 });
 
                 $scope.infowindow = new google.maps.InfoWindow();

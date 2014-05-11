@@ -6,7 +6,7 @@
 <button ng-click="zoomOut()">zoom out</button>
 <button ng-click="zoomIn()">zoom in</button>
 
-<gmaps markers="markers" style="width: 200px; height: 200px;"></gmaps>
+<gmaps markers="markers" style="width: 200px; height: 200px;" zoom-changed="zoomChanged(zoom)" center-changed="centerChanged(center)" fit-bounds="true"></gmaps>
 <gmaps markers="markers" map-type="satellite" style="width: 200px; height: 200px;"></gmaps>
 <gmaps markers="markers" zoom="zoom" center="center" style="width: 200px; height: 200px;"></gmaps>
 

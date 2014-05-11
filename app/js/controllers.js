@@ -44,6 +44,14 @@ angular.module('myApp.controllers', [])
             $scope.zoom = Math.min(20,$scope.zoom+1);
         };
 
+        $scope.zoomChanged = function(zoom){
+            console.log(zoom);
+        };
+
+        $scope.centerChanged = function(center){
+            console.log(center);
+        };
+
     }])
     .controller('MyCtrl2', ['$scope', function ($scope) {
 
