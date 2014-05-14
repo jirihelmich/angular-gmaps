@@ -28,6 +28,10 @@ angular.module('myApp.controllers', [])
                 {
                     coordinates: {lat: 4, lng: 60},
                     description: "nice one"
+                },
+                {
+                    coordinates: {lat: 14, lng: 50},
+                    description: "nice one"
                 }
             ];
         };
@@ -50,6 +54,10 @@ angular.module('myApp.controllers', [])
 
         $scope.centerChanged = function(center){
             console.log(center);
+        };
+
+        $scope.boundsChanged = function(bounds){
+            console.log(bounds);
         };
 
     }])

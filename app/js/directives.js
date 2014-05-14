@@ -1,7 +1,9 @@
 'use strict';
 
 /* Directives */
-
+Array.prototype.diff = function(a) {
+    return this.filter(function(i) {return a.indexOf(i) < 0;});
+};
 
 angular.module('myApp.directives', []).
     directive('appVersion', ['version', function (version) {
@@ -18,11 +20,13 @@ angular.module('myApp.directives', []).
                 center: '=',
                 zoomChangedListener: '&zoomChanged',
                 centerChangedListener: '&centerChanged',
+                boundsChangedListener: '&boundsChanged',
                 fitBounds: '='
             },
             controller: function ($scope) {
 
                 $scope._gMarkers = [];
+                $scope.markersMap = {};
 
                 $scope.getTitle = function (item) {
                     var t = "";
@@ -33,35 +37,60 @@ angular.module('myApp.directives', []).
                 };
 
                 $scope.zoomChanged = function (zoomLevel) {
-                    $scope.zoomChangedListener = $scope.zoomChangedListener || function () {};
+                    $scope.zoomChangedListener = $scope.zoomChangedListener || function () {
+                    };
                     $scope.zoomChangedListener({zoom: zoomLevel});
                 };
 
                 $scope.centerChanged = function (center) {
-                    $scope.centerChangedListener = $scope.centerChangedListener || function () {};
-                    $scope.centerChangedListener({center: {lat: center.k, lng: center.A}}); //wtf, google, wtf?!
+                    $scope.centerChangedListener = $scope.centerChangedListener || function () {
+                    };
+                    $scope.centerChangedListener({center: {lat: center.lat(), lng: center.lng()}});
+                };
+
+                $scope.boundsChanged = function (bounds) {
+                    $scope.boundsChangedListener = $scope.boundsChangedListener || function () {
+                    };
+                    var ne = bounds.getNorthEast();
+                    var sw = bounds.getSouthWest();
+                    $scope.boundsChangedListener({
+                        bounds: {
+                            northEast: {lat: ne.lat(), lng: ne.lng()},
+                            southWest: {lat: sw.lat(), lng: sw.lng()}
+                        }
+                    });
                 };
 
                 $scope.updateMarkers = function () {
 
-                    angular.forEach($scope._gMarkers, function (m) {
-                        m.setMap(null);
-                    });
+                    var newMarkersMap = {};
+                    var newMarkers = [];
+                    $scope.bounds = new google.maps.LatLngBounds();
 
-                    $scope._gMarkers = [];
+                    angular.forEach($scope.markerData, function (item) {
 
-                    var bounds = new google.maps.LatLngBounds();
+                        var coords = item.coordinates;
+                        var marker;
 
-                    angular.forEach($scope.markerData, function (item, k) {
+                        // REUSE OR CREATE
+                        if ($scope.markersMap[coords.lat] && $scope.markersMap[coords.lat][coords.lng]) {
+                            marker = $scope.markersMap[coords.lat][coords.lng];
+                            marker.setMap($scope.map);
+                        } else {
+                            marker = new google.maps.Marker({
+                                position: new google.maps.LatLng(coords.lat, coords.lng),
+                                map: $scope.map,
+                                title: $scope.getTitle(item)
+                            });
+                        }
 
-                        var marker = new google.maps.Marker({
-                            position: new google.maps.LatLng(item.coordinates.lat, item.coordinates.lng),
-                            map: $scope.map,
-                            title: $scope.getTitle(item)
-                        });
+                        // BOUNDS, REMEBERING MARKERS
+                        newMarkersMap[coords.lat] = newMarkersMap[coords.lat] || {};
+                        newMarkersMap[coords.lat][coords.lng] = marker;
+                        newMarkers.push(marker);
+                        $scope.bounds.extend(marker.position);
 
-                        $scope._gMarkers.push(marker);
-
+                        // INFO WINDOW
                         var contentString = '<p>' + item.description.replace(/\n/g, "<br />") + '</p>';
 
                         google.maps.event.addListener(marker, 'click', function (content) {
@@ -70,13 +99,23 @@ angular.module('myApp.directives', []).
                                 $scope.infowindow.open($scope.map, this);
                             }
                         }(contentString));
-
-                        bounds.extend(marker.position);
                     });
 
-                    if($scope.fitBounds === true){
-                        $scope.map.fitBounds(bounds);
+                    var hideMarkers = $scope._gMarkers.diff(newMarkers);
+
+                    angular.forEach(hideMarkers, function (m) {
+                        m.setMap(null);
+                    });
+
+                    $scope._gMarkers = newMarkers;
+
+                    $scope.markersMap = newMarkersMap;
+
+                    if ($scope.fitBounds === true) {
+                        $scope.map.fitBounds($scope.bounds);
                     }
+
+                    $scope.boundsChanged($scope.bounds);
                 };
 
                 $scope.updateZoom = function () {
@@ -117,6 +156,10 @@ angular.module('myApp.directives', []).
 
                 google.maps.event.addListener($scope.map, 'center_changed', function () {
                     $scope.centerChanged($scope.map.getCenter());
+                });
+
+                google.maps.event.addListener($scope.map, 'bounds_changed', function () {
+                    $scope.boundsChanged($scope.map.getBounds());
                 });
 
                 $scope.infowindow = new google.maps.InfoWindow();
